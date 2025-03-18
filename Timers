@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
   * @file    main.c
-  * @author  Weili An, Niraj Menon
+  * @author  Nathan Gollins
   * @date    Jan 19, 2024
-  * @brief   ECE 362 Lab 3 Student template
+  * @brief   ECE 362 Lab 3 - Timers
   ******************************************************************************
 */
 
