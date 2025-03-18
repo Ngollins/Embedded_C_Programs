@@ -1,0 +1,143 @@
+/**
+  ******************************************************************************
+  * @file    main.c
+  * @author  Weili An, Niraj Menon
+  * @date    Jan 5 2024
+  * @brief   ECE 362 Lab 1 template
+  ******************************************************************************
+*/
+
+
+/**
+******************************************************************************/
+
+// Fill out your username, otherwise your completion code will have the 
+// wrong username!
+const char* username = "ngollins";
+
+/******************************************************************************
+*/ 
+
+#include "stm32f0xx.h"
+#include <stdint.h>
+
+void initb();
+void initc();
+void setn(int32_t pin_num, int32_t val);
+int32_t readpin(int32_t pin_num);
+void buttons(void);
+void keypad(void);
+void autotest(void);
+extern void internal_clock(void);
+extern void nano_wait(unsigned int n);
+
+int main(void) {
+    internal_clock(); // do not comment!
+    // Comment until most things have been implemented
+    autotest();
+    initb();
+    initc();
+
+    // uncomment one of the loops, below, when ready
+    // while(1) {
+    //   buttons();
+    // }
+
+    // while(1) {
+    //   keypad();
+    // }
+
+    for(;;);
+    
+    return 0;
+}
+
+/**
+ * @brief Init GPIO port B
+ *        Pin 0: input
+ *        Pin 4: input
+ *        Pin 8-11: output
+ *
+ */
+void initb() {
+
+  RCC -> AHBENR |= RCC_AHBENR_GPIOBEN;
+  GPIOB -> MODER &= ~0x03ffffff;
+  GPIOB -> MODER |= 0x00550000;
+}
+
+/**
+ * @brief Init GPIO port C
+ *        Pin 0-3: inputs with internal pull down resistors
+ *        Pin 4-7: outputs
+ *
+ */
+void initc() {
+  RCC -> AHBENR |= RCC_AHBENR_GPIOCEN;
+  GPIOC -> MODER &= ~0x0000ffff;
+  GPIOC -> MODER |= 0x00005500;
+  GPIOC -> PUPDR |= 0x000000aa;
+}
+
+/**
+ * @brief Set GPIO port B pin to some value
+ *
+ * @param pin_num: Pin number in GPIO B
+ * @param val    : Pin value, if 0 then the
+ *                 pin is set low, 1else set high
+ */
+void setn(int32_t pin_num, int32_t val) {
+  if(val == 0)
+  {
+    GPIOB -> BRR = 1 << pin_num;
+  }
+  else
+  {
+    GPIOB -> BSRR = 1 << pin_num;
+  }
+}
+
+/**
+ * @brief Read GPIO port B pin values
+ *
+ * @param pin_num   : Pin number in GPIO B to be read
+ * @return int32_t  : 1: the pin is high; 0: the pin is low
+ */
+int32_t readpin(int32_t pin_num) {
+  if(((1 << pin_num) & GPIOB -> IDR) == 0)
+  {
+    return 0x0;
+  }
+  else
+  {
+    return 0x1;
+  }
+}
+
+/**
+ * @brief Control LEDs with buttons
+ *        Use PB0 value for PB8
+ *        Use PB4 value for PB9
+ *
+ */
+void buttons(void) {
+  int32_t pinVal = readpin(0);
+  setn(8, pinVal);
+  int32_t pinVal2 = readpin(4);
+  setn(9, pinVal2);
+}
+
+/**
+ * @brief Control LEDs with keypad
+ * 
+ */
+void keypad(void) {
+    for(int i = 1; i < 5; i++)
+    {
+      //columns = 4567
+      GPIOC -> BSRR |= 1 << (i+3);
+      nano_wait(1000000);
+      int32_t temp = GPIOC -> IDR & 0xF;
+      setn(i + 7, (temp >> i - 1) & 1);  
+    }
+}

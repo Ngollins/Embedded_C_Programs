@@ -1,0 +1,273 @@
+/**
+  ******************************************************************************
+  * @file    main.c
+  * @author  Weili An, Niraj Menon
+  * @date    Feb 7, 2024
+  * @brief   ECE 362 Lab 7 student template
+  ******************************************************************************
+*/
+
+/*******************************************************************************/
+
+// Fill out your username!  Even though we're not using an autotest, 
+// it should be a habit to fill out your username in this field now.
+const char* username = "ngollins";
+
+/*******************************************************************************/ 
+
+#include "stm32f0xx.h"
+#include <stdint.h>
+
+void internal_clock();
+
+// Uncomment only one of the following to test each step
+//#define STEP1
+//#define STEP2
+//#define STEP3
+#define STEP4
+
+void init_usart5() {
+    
+    
+    
+    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+    RCC->AHBENR |= RCC_AHBENR_GPIODEN;
+
+    GPIOC -> MODER &= ~0x03000000;
+    GPIOC -> MODER |= 0x02000000;
+    GPIOD -> MODER &= ~0x000000f0;
+    GPIOD -> MODER |= 0x00000020;
+
+    GPIOC-> AFR[1] &= ~0x000f0000;
+    GPIOC-> AFR[1] |= 0x00020000;
+    GPIOD-> AFR[0] &= ~0x00000f00;
+    GPIOD-> AFR[0] |= 0x00000200;
+    //Do all the steps necessary to configure pin PC12 to be routed to USART5_TX.
+    //Do all the steps necessary to configure pin PD2 to be routed to USART5_RX.
+
+
+
+
+
+    RCC -> APB1ENR |= RCC_APB1ENR_USART5EN;
+
+    //USART5 -> CR1 &= ~0x00000001; // Turn off bit 0
+
+    USART5 -> CR1 &= ~USART_CR1_UE; // Turn off bit 0
+
+    USART5 -> CR1 &= ~0x10001000; //Turn off 28 and 12 to set word length
+
+    USART5 -> CR2 &= ~0x00003000; //Clear bits 12 and 13  to set stop bit
+
+    USART5 -> CR1 &= ~USART_CR1_PCE;//~0x00000200; //Clear bit 9 for no parity, USART5_CR1_PS;
+
+    USART5 -> CR1 &= ~USART_CR1_OVER8;//~0x00008000;//Clear bit 15 for 16x oversampling USART5_CR1_OVER8
+
+    USART5 -> BRR = 0x1A1; //Use a baud rate of 115200 (115.2 kbaud). "No need to OR the value in - you can assign it directly."
+
+    USART5 -> CR1 |= USART_CR1_TE | USART_CR1_RE; //0x0000000c;  //Set TE and RE bits USART5_CR1_TE
+
+
+    USART5 -> CR1 |= USART_CR1_UE;//0x00000001; //Enable UE USART5_CR1_UE
+
+    while (!(USART5->ISR & (USART_ISR_TEACK | USART_ISR_REACK))) { }
+    //while(((USART5->ISR >> 21) & 0x3) != 0x3)
+    
+
+    
+}
+
+#ifdef STEP1
+int main(void){
+    internal_clock();
+    init_usart5();
+    for(;;) {
+        while (!(USART5->ISR & USART_ISR_RXNE)) { }
+        char c = USART5->RDR;
+        while(!(USART5->ISR & USART_ISR_TXE)) { }
+        USART5->TDR = c;
+    }
+}
+#endif
+
+#ifdef STEP2
+#include <stdio.h>
+
+// TODO Resolve the echo and carriage-return problem
+
+int __io_putchar(int c) {
+    // TODO
+    if(c == '\n')
+    {
+        while(!(USART5->ISR & USART_ISR_TXE));
+        USART5->TDR = '\r';
+    }
+    while(!(USART5->ISR & USART_ISR_TXE));
+    USART5->TDR = c;
+    return c;
+}
+
+int __io_getchar(void) {
+    while (!(USART5->ISR & USART_ISR_RXNE));
+    char c = USART5->RDR;
+    if(c == '\r')
+    {
+        c = '\n';
+    }
+    __io_putchar(c);
+    return c;
+}
+
+int main() {
+    internal_clock();
+    init_usart5();
+    setbuf(stdin,0);
+    setbuf(stdout,0);
+    setbuf(stderr,0);
+    printf("Enter your name: ");
+    char name[80];
+    fgets(name, 80, stdin);
+    printf("Your name is %s", name);
+    printf("Type any characters.\n");
+    for(;;) {
+        char c = getchar();
+        putchar(c);
+    }
+}
+#endif
+
+#ifdef STEP3
+#include <stdio.h>
+#include "fifo.h"
+#include "tty.h"
+int __io_putchar(int c) {
+    if(c == '\n')
+    {
+        while(!(USART5->ISR & USART_ISR_TXE));
+        USART5->TDR = '\r';
+    }
+    while(!(USART5->ISR & USART_ISR_TXE));
+    USART5->TDR = c;
+    return c;
+}
+
+int __io_getchar(void) {
+
+    int final = line_buffer_getchar();
+    return final;
+}
+
+int main() {
+    internal_clock();
+    init_usart5();
+    setbuf(stdin,0);
+    setbuf(stdout,0);
+    setbuf(stderr,0);
+    printf("Enter your name: ");
+    char name[80];
+    fgets(name, 80, stdin);
+    printf("Your name is %s", name);
+    printf("Type any characters.\n");
+    for(;;) {
+        char c = getchar();
+        putchar(c);
+    }
+}
+#endif
+
+#ifdef STEP4
+
+#include <stdio.h>
+#include "fifo.h"
+#include "tty.h"
+
+// TODO DMA data structures
+#define FIFOSIZE 16
+char serfifo[FIFOSIZE];
+int seroffset = 0;
+
+void enable_tty_interrupt(void) {
+    // TODO
+    USART5 -> CR1 |= USART_CR1_RXNEIE;
+    NVIC -> ISER[0] |= (1 << USART3_8_IRQn);
+    USART5 -> CR3 |= USART_CR3_DMAR;
+
+    RCC->AHBENR |= RCC_AHBENR_DMA2EN;
+    DMA2->CSELR |= DMA2_CSELR_CH2_USART5_RX;
+    DMA2_Channel2->CCR &= ~DMA_CCR_EN;  // First make sure DMA is turned off
+
+    DMA2_Channel2 -> CMAR =  (uint32_t) &serfifo;
+    DMA2_Channel2 -> CPAR = (uint32_t) &(USART5 -> RDR);
+    DMA2_Channel2 -> CNDTR = FIFOSIZE;
+    DMA2_Channel2 -> CCR &= ~DMA_CCR_DIR;
+    DMA2_Channel2 -> CCR &= ~DMA_CCR_HTIE;
+    DMA2_Channel2 -> CCR &= ~DMA_CCR_TCIE;
+    DMA2_Channel2 -> CCR &= ~DMA_CCR_MSIZE;
+    DMA2_Channel2 -> CCR &= ~DMA_CCR_PSIZE;
+
+    DMA2_Channel2 -> CCR |= DMA_CCR_MINC; //MINC should be set to increment the CMAR.
+    DMA2_Channel2 -> CCR &= ~DMA_CCR_PINC; //PINC should not be set so that CPAR always points at the USART5->RDR.
+
+    DMA2_Channel2 -> CCR |= DMA_CCR_CIRC;
+    DMA2_Channel2 -> CCR &= ~DMA_CCR_MEM2MEM;
+    DMA2_Channel2 -> CCR |= 0x00003000;
+    DMA2_Channel2->CCR |= DMA_CCR_EN;
+}
+
+// Works like line_buffer_getchar(), but does not check or clear ORE nor wait on new characters in USART
+char interrupt_getchar() {
+    while(fifo_newline(&input_fifo) == 0) {
+        asm volatile ("wfi"); // wait for an interrupt
+    }
+    // Return a character from the line buffer.
+    char ch = fifo_remove(&input_fifo);
+    return ch;
+}
+
+int __io_putchar(int c) {
+    if(c == '\n')
+    {
+        while(!(USART5->ISR & USART_ISR_TXE));
+        USART5->TDR = '\r';
+    }
+    while(!(USART5->ISR & USART_ISR_TXE));
+    USART5->TDR = c;
+    return c;
+}
+
+int __io_getchar(void) {
+    int final = interrupt_getchar();
+    return final;
+}
+
+// TODO Copy the content for the USART5 ISR here
+
+void USART3_8_IRQHandler(void) {
+    while(DMA2_Channel2->CNDTR != sizeof serfifo - seroffset) {
+        if (!fifo_full(&input_fifo))
+            insert_echo_char(serfifo[seroffset]);
+        seroffset = (seroffset + 1) % sizeof serfifo;
+    }
+}
+// TODO Remember to look up for the proper name of the ISR function
+
+
+int main() {
+    internal_clock();
+    init_usart5();
+    enable_tty_interrupt();
+
+    setbuf(stdin,0); // These turn off buffering; more efficient, but makes it hard to explain why first 1023 characters not dispalyed
+    setbuf(stdout,0);
+    setbuf(stderr,0);
+    printf("Enter your name: "); // Types name but shouldn't echo the characters; USE CTRL-J to finish
+    char name[80];
+    fgets(name, 80, stdin);
+    printf("Your name is %s", name);
+    printf("Type any characters.\n"); // After, will type TWO instead of ONE
+    for(;;) {
+        char c = getchar();
+        putchar(c);
+    }
+}
+#endif
