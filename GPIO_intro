@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
   * @file    main.c
-  * @author  Weili An, Niraj Menon
+  * @author  Nathan Gollins
   * @date    Jan 5 2024
-  * @brief   ECE 362 Lab 1 template
+  * @brief   ECE 362 GPIO
   ******************************************************************************
 */
 
