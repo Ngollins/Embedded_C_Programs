@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
   * @file    main.c
-  * @author  Weili An, Niraj Menon
+  * @author  Nathan Gollins
   * @date    Jan 24 2024
-  * @brief   ECE 362 Lab 4 Student template
+  * @brief   ECE 362 Lab 4 - DMA/ACD/DAC
   ******************************************************************************
 */
 
